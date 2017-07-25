@@ -312,9 +312,18 @@ SideTabList.prototype = {
 
     let curTabPos = this.getPos(tabId);
     let dropTabPos = this.getPos(dropTabId);
-    let newPos = curTabPos < dropTabPos ? Math.min(this.tabs.size, dropTabPos) :
-    Math.max(0, dropTabPos);
-    browser.tabs.move(tabId, { index: newPos });
+    // If dropped on top half of tab, place above; if dropped on bottom half, place below
+    if (curTabPos < dropTabPos) {
+      let newPos = (e.offsetY < e.target.offsetHeight / 2) ?
+        Math.min(this.tabs.size, dropTabPos - 1) :
+        Math.max(0, dropTabPos);
+      browser.tabs.move(tabId, { index: newPos });
+    } else {
+      let newPos = (e.offsetY < e.target.offsetHeight / 2) ?
+        Math.min(this.tabs.size, dropTabPos) :
+        Math.max(0, dropTabPos + 1);
+      browser.tabs.move(tabId, { index: newPos });
+    }
   },
   onSpacerDblClick() {
     browser.tabs.create({});
