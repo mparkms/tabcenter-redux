@@ -66,6 +66,7 @@ SideTabList.prototype = {
     document.addEventListener("dragstart", e => this.onDragStart(e));
     document.addEventListener("dragover", e => this.onDragOver(e));
     document.addEventListener("drop", e => this.onDrop(e));
+    document.addEventListener("dragend", e => this.onDragEnd(e));
 
     // Pref changes
     browser.storage.onChanged.addListener(changes => {
@@ -315,6 +316,24 @@ SideTabList.prototype = {
     let newPos = curTabPos < dropTabPos ? Math.min(this.tabs.size, dropTabPos) :
     Math.max(0, dropTabPos);
     browser.tabs.move(tabId, { index: newPos });
+  },
+  async onDragEnd(e) {
+    let dt = e.dataTransfer;
+    // Dropped on an invalid drop target (i.e. not a sidebar)
+    if (dt.dropEffect == "none" && !dt.mozUserCancelled) {
+      const tabStr = dt.getData("text/x-tabcenter-tab");
+      if (!tabStr) {
+        console.warn("Unknown drag-and-drop operation. Aborting.");
+        return;
+      }
+      let { tabId, origWindowId } = JSON.parse(tabStr);
+      let window = await browser.windows.get(origWindowId, {populate: true});
+      // Don't create new window if this is the only tab in the original window
+      if (window.tabs.length === 1) {
+        return;
+      }
+      browser.windows.create({ tabId });
+    }
   },
   onSpacerDblClick() {
     browser.tabs.create({});
